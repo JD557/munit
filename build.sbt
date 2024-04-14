@@ -137,9 +137,6 @@ lazy val mimaEnable: List[Def.Setting[_]] = List(
     ProblemFilters.exclude[IncompatibleMethTypeProblem](
       "munit.ValueTransforms#ValueTransform.this"
     ),
-    ProblemFilters.exclude[DirectMissingMethodProblem](
-      "munit.ScalaCheckSuite.unitToProp"
-    )
   ),
   mimaPreviousArtifacts := {
     if (crossPaths.value)
@@ -269,93 +266,6 @@ lazy val plugin = project
     )
   )
   .disablePlugins(MimaPlugin)
-
-lazy val munitScalacheck = crossProject(JSPlatform, JVMPlatform, NativePlatform)
-  .in(file("munit-scalacheck"))
-  .dependsOn(munit)
-  .settings(
-    moduleName := "munit-scalacheck",
-    sharedSettings,
-    libraryDependencies += {
-      "org.scalacheck" %%% "scalacheck" % "1.17.0"
-    }
-  )
-  .jvmSettings(
-    sharedJVMSettings
-  )
-  .nativeConfigure(sharedNativeConfigure)
-  .nativeSettings(
-    sharedNativeSettings
-  )
-  .jsConfigure(sharedJSConfigure)
-  .jsSettings(sharedJSSettings)
-
-lazy val munitScalacheckJVM = munitScalacheck.jvm
-lazy val munitScalacheckJS = munitScalacheck.js
-lazy val munitScalacheckNative = munitScalacheck.native
-
-lazy val tests = crossProject(JSPlatform, JVMPlatform, NativePlatform)
-  .dependsOn(munit, munitScalacheck)
-  .enablePlugins(BuildInfoPlugin)
-  .settings(
-    sharedSettings,
-    buildInfoPackage := "munit",
-    buildInfoKeys := Seq[BuildInfoKey](
-      "sourceDirectory" ->
-        ((ThisBuild / baseDirectory).value / "tests" / "shared" / "src" / "main").getAbsolutePath.toString,
-      scalaVersion
-    ),
-    Test / unmanagedSourceDirectories ++=
-      crossBuildingDirectories("tests", "test").value,
-    publish / skip := true
-  )
-  .nativeConfigure(sharedNativeConfigure)
-  .nativeSettings(sharedNativeSettings)
-  .jsConfigure(sharedJSConfigure)
-  .jsSettings(
-    sharedJSSettings,
-    jsEnv := {
-      val log = sLog.value
-      if (Option(System.getenv("GITHUB_JOB")).contains("jsdom")) {
-        log.info("Testing in JSDOMNodeJSEnv")
-        new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv
-      } else {
-        log.info("Testing in NodeJSEnv")
-        new org.scalajs.jsenv.nodejs.NodeJSEnv
-      }
-    }
-  )
-  .jvmSettings(
-    sharedJVMSettings,
-    fork := true,
-    Test / parallelExecution := true,
-    Test / testOptions += Tests.Argument(TestFrameworks.MUnit, "+b")
-  )
-  .disablePlugins(MimaPlugin)
-lazy val testsJVM = tests.jvm
-lazy val testsJS = tests.js
-lazy val testsNative = tests.native
-
-lazy val docs = project
-  .in(file("munit-docs"))
-  .dependsOn(munitJVM, munitScalacheckJVM)
-  .enablePlugins(MdocPlugin, DocusaurusPlugin)
-  .disablePlugins(MimaPlugin)
-  .settings(
-    sharedSettings,
-    publish / skip := true,
-    moduleName := "munit-docs",
-    crossScalaVersions := List(scala213, scala212),
-    test := {},
-    mdocOut :=
-      (ThisBuild / baseDirectory).value / "website" / "target" / "docs",
-    mdocExtraArguments := List("--no-link-hygiene"),
-    mdocVariables := Map(
-      "VERSION" -> version.value.replaceFirst("\\+.*", ""),
-      "STABLE_VERSION" -> "0.7.29"
-    ),
-    fork := false
-  )
 
 Global / excludeLintKeys ++= Set(
   mimaPreviousArtifacts
