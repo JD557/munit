@@ -33,7 +33,7 @@ inThisBuild(
         url("https://geirsson.com")
       )
     ),
-    scalaVersion := scala213,
+    scalaVersion := scala3,
     useSuperShell := false
   )
 )
